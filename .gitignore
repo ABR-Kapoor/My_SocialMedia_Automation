@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.eggs/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+env/
+
+# Environment variables — NEVER commit
+.env
+.env.example
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Hide Markdowns except README
+*.md
+!README.md
+
+# Hide Environment templates
+.env*
+*.example
+githubset.text
+render.yaml
+Procfile
