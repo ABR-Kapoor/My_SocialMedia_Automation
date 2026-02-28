@@ -4,7 +4,8 @@ import json
 import os
 
 # curl_cffi mimics Chrome TLS fingerprint — bypasses Cloudflare cf_clearance restrictions
-from curl_cffi import requests as cf_requests
+# (Replaced with standard requests for Termux compatibility, manual post mode active)
+import requests as cf_requests
 
 from config import MEDIUM_SID_COOKIE, MEDIUM_UID_COOKIE
 
@@ -28,8 +29,8 @@ def _strip(text: str) -> str:
 
 class MediumPlatform:
     def __init__(self):
-        # impersonate="safari_ios" matches your iPhone UA / TLS fingerprint
-        self.session = cf_requests.Session(impersonate="safari_ios")
+        # Standard requests session (no impersonation)
+        self.session = cf_requests.Session()
 
         # ── Build raw Cookie header ───────────────────────────────────────────
         if MEDIUM_COOKIE_STRING:
