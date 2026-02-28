@@ -5,7 +5,7 @@ Falls back to curated defaults gracefully.
 import logging
 from pytrends.request import TrendReq
 from concurrent.futures import ThreadPoolExecutor
-from duckduckgo_search import DDGS
+from googlesearch import search
 from config import BRAND
 
 logger = logging.getLogger(__name__)
@@ -62,22 +62,30 @@ class SearchAgent:
         Should only run if the topic looks like current affairs or if explicitly needed.
         """
         try:
-            logger.info(f"🔍 Searching web for: {topic}")
-            results = DDGS().text(topic, max_results=max_results)
+            logger.info(f"🔍 Searching web via Google for: {topic}")
+            # advanced=True returns dictionaries with title, description, url
+            results = list(search(topic, num=max_results, stop=max_results, pause=2.0, advanced=True))
+            
             if not results:
                 return ""
             
             snippets = []
             for i, r in enumerate(results):
-                title = r.get("title", "")
-                body = r.get("body", "")
-                snippets.append(f"[{i+1}] {title}: {body}")
+                title = getattr(r, 'title', '')
+                desc = getattr(r, 'description', '')
+                if not title and not desc:  # Fallback for some versions of the library returning dicts
+                    title = r.get("title", "") if isinstance(r, dict) else ""
+                    desc = r.get("description", "") if isinstance(r, dict) else ""
+                snippets.append(f"[{i+1}] {title}: {desc}")
             
             context = "\n\n".join(snippets)
+            if context.strip() == "":
+                raise Exception("Empty Google snippets returned")
+                
             logger.info(f"✅ Web search found {len(snippets)} snippets")
             return context
         except Exception as e:
-            logger.warning(f"Web search failed: {e}")
+            logger.warning(f"Web search scrape failed: {e}")
             return ""
 
     def _extract_keywords(self, topic: str) -> list[str]:
