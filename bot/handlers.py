@@ -547,9 +547,7 @@ async def topic_ai_suggest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text("⏳ Searching web for tech & startup trends to inspire topics…")
     
     try:
-        web_context = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: search_agent.search_web_for_topic("latest startup tech india AI trends news")
-        )
+        web_context = await search_agent.search_web_for_topic("latest startup tech india AI trends news")
     except Exception:
         web_context = ""
 
@@ -733,9 +731,10 @@ async def _proceed_to_generation(message, context: ContextTypes.DEFAULT_TYPE):
     )
     
     # Check for known GitHub repos and append explicit links if mentioned.
-    if "github_commit" in context.user_data or "github" in platforms or repos:
+    user_repos = context.user_data.get("repos")
+    if "github_commit" in context.user_data or "github" in platforms or user_repos:
         try:
-            repo_list = repos if 'repos' in locals() else await asyncio.get_event_loop().run_in_executor(None, github_agent.get_user_repos)
+            repo_list = user_repos if user_repos else await asyncio.get_event_loop().run_in_executor(None, github_agent.get_user_repos)
             repo_names = {r["name"].lower(): r["name"] for r in repo_list}
             
             for plat, txt in content.items():

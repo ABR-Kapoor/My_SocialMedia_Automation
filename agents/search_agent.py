@@ -20,8 +20,8 @@ class SearchAgent:
     @property
     def pytrends(self):
         if self._pytrends_instance is None:
-            # Provide higher timeout and connection retries to bypass cold-start issues
-            self._pytrends_instance = TrendReq(hl="en-US", tz=-330, timeout=(10, 25), retries=2, backoff_factor=0.1)
+            # Provide higher timeout (retries=0 bypasses urllib3>2 method_whitelist crash)
+            self._pytrends_instance = TrendReq(hl="en-US", tz=-330, timeout=(10, 25), retries=0)
         return self._pytrends_instance
 
     def get_trending_hashtags(self, topic: str) -> list[str]:
