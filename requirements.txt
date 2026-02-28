@@ -1,0 +1,33 @@
+# Telegram Bot
+python-telegram-bot[job-queue]==21.6
+
+# AI / LLMs
+google-generativeai>=0.8.0
+openai==1.39.0
+
+# Database (Neon / PostgreSQL)
+asyncpg>=0.29.0
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.9
+
+# Social Media Platforms
+tweepy>=4.14.0
+PyGithub>=2.3.0
+
+# Web / OAuth
+flask>=3.0.0
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# Scheduler
+APScheduler>=3.10.0
+
+# Trend Research
+pytrends>=4.9.2
+
+# Utilities
+python-dotenv>=1.0.0
+Pillow>=10.0.0
+gunicorn>=21.0.0
+httpx>=0.27.0
+googlesearch-python>=1.2.0
