@@ -253,11 +253,11 @@ async def cmd_github_commit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if status["committed"]:
         text = (
-            "🐙 *GitHub DSA-java — Today's Status*\n\n"
-            f"✅ *You've already committed today!*\n"
-            f"Count: `{status['count']}` commit(s)\n"
-            f"Last: _{status['last_msg']}_\n\n"
-            f"[View Commit]({status['last_url']})"
+            "🐙 GitHub DSA-java — Today's Status\n\n"
+            "✅ You've already committed today!\n"
+            f"Count: {status['count']} commit(s)\n"
+            f"Last: {status['last_msg']}\n\n"
+            f"View Commit: {status['last_url']}"
         )
         buttons = [
             [InlineKeyboardButton("💬 Comment on existing file (comment and commit)", callback_data="gh_commit_comment")],
@@ -265,8 +265,8 @@ async def cmd_github_commit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     else:
         text = (
-            "🐙 *GitHub DSA-java — Today's Status*\n\n"
-            "❌ *Yet to commit today!*\n\n"
+            "🐙 GitHub DSA-java — Today's Status\n\n"
+            "❌ Yet to commit today!\n\n"
             "Hit the button below — I'll pick a Java file, "
             "generate a contextual insight, and commit it automatically. "
             "No input needed! 🚀"
@@ -278,7 +278,6 @@ async def cmd_github_commit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await msg.edit_text(
         text,
-        parse_mode=ParseMode.MARKDOWN,
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup(buttons),
     )
@@ -307,8 +306,7 @@ async def gh_commit_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         await query.edit_message_text(
-            f"📂 `{file_info['path']}`\n\n⏳ Writing inline comments…",
-            parse_mode=ParseMode.MARKDOWN,
+            f"📂 {file_info['path']}\n\n⏳ Writing inline comments…",
         )
 
         prompt = f"""You're a developer reviewing your own Java DSA code from a few days ago.
@@ -337,10 +335,9 @@ Rules:
             comment_lines = f"// revisited this — logic looks fine, just adding a note for clarity\n// time complexity here should be O(n log n) overall"
 
         await query.edit_message_text(
-            f"📂 `{file_info['path']}`\n\n"
-            f"💬 Comments:\n`{_escape_for_tg(comment_lines[:300])}`\n\n"
+            f"📂 {file_info['path']}\n\n"
+            f"💬 Comments preview:\n{comment_lines[:300]}\n\n"
             "⏳ Committing…",
-            parse_mode=ParseMode.MARKDOWN,
         )
 
         result = await asyncio.get_event_loop().run_in_executor(
@@ -356,8 +353,7 @@ Rules:
         )
 
         await query.edit_message_text(
-            f"📌 Topic: *{_escape_for_tg(description)}*\n\n⏳ Writing Java code…",
-            parse_mode=ParseMode.MARKDOWN,
+            f"📌 Topic: {description}\n\n⏳ Writing Java code…",
         )
 
         prompt = f"""Write a complete Java implementation of: {description}
@@ -398,10 +394,9 @@ Rules (strictly follow):
             )
 
         await query.edit_message_text(
-            f"📌 *{_escape_for_tg(description)}*\n\n"
-            f"📄 File: `{_escape_for_tg(folder)}/{_escape_for_tg(filename)}.java`\n\n"
+            f"📌 {description}\n\n"
+            f"📄 File: {folder}/{filename}.java\n\n"
             "⏳ Committing to DSA-java…",
-            parse_mode=ParseMode.MARKDOWN,
         )
 
         result = await asyncio.get_event_loop().run_in_executor(
@@ -413,18 +408,16 @@ Rules (strictly follow):
         mode_icon = "📝" if mode == "A" else "🆕"
         mode_label = "Inline comment added" if mode == "A" else "New file created"
         await query.edit_message_text(
-            f"✅ *Committed to DSA-java!*\n\n"
+            f"✅ Committed to DSA-java!\n\n"
             f"{mode_icon} {mode_label}\n"
-            f"📂 `{_escape_for_tg(result['file'])}`\n"
-            f"💬 _{_escape_for_tg(result['message'])}_\n\n"
-            f"[View Commit]({result['url']})",
-            parse_mode=ParseMode.MARKDOWN,
+            f"📂 {result['file']}\n"
+            f"💬 {result['message']}\n\n"
+            f"View Commit: {result['url']}",
             disable_web_page_preview=True,
         )
     else:
         await query.edit_message_text(
-            f"❌ Commit failed:\n`{_escape_for_tg(result['message'][:300])}`",
-            parse_mode=ParseMode.MARKDOWN,
+            f"❌ Commit failed:\n{result['message'][:300]}",
         )
 
 

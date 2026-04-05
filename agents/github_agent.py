@@ -226,28 +226,52 @@ class GithubAgent:
                         java_code: str, description: str) -> dict:
         """Create a new .java file in the given folder inside DSA-java."""
         try:
-            repo      = self._get_dsa_repo()
-            file_path = f"{folder}/{filename}.java"
+            repo = self._get_dsa_repo()
 
-            # Human commit messages
-            commit_msg = random.choice([
-                f"add {filename} — {description[:50]}",
-                f"implement {filename.lower()} in {folder}",
-                f"{filename}: working solution, needs cleanup",
-                f"finally got {filename} working — adding to repo",
-                f"solved {filename}, committing before I forget",
-            ])
+            # Avoid 422 ("sha wasn't supplied") when same-named file already exists.
+            candidates = [f"{folder}/{filename}.java"] + [
+                f"{folder}/{filename}_{i}.java" for i in range(2, 8)
+            ]
 
-            result = repo.create_file(
-                path=file_path,
-                message=commit_msg,
-                content=java_code,
-            )
-            url = result["commit"].html_url
-            logger.info(f"✅ New DSA file created: {file_path}")
+            for file_path in candidates:
+                try:
+                    repo.get_contents(file_path)
+                    continue
+                except GithubException as e:
+                    if getattr(e, "status", None) != 404:
+                        raise
+
+                commit_msg = random.choice([
+                    f"add {filename} — {description[:50]}",
+                    f"implement {filename.lower()} in {folder}",
+                    f"{filename}: working solution, needs cleanup",
+                    f"finally got {filename} working — adding to repo",
+                    f"solved {filename}, committing before I forget",
+                ])
+
+                try:
+                    result = repo.create_file(
+                        path=file_path,
+                        message=commit_msg,
+                        content=java_code,
+                    )
+                    url = result["commit"].html_url
+                    logger.info(f"✅ New DSA file created: {file_path}")
+                    return {
+                        "success": True, "url": url, "message": commit_msg,
+                        "mode": "new_file", "file": file_path,
+                    }
+                except GithubException as e:
+                    msg = str(e)
+                    status = getattr(e, "status", None)
+                    if status == 422 and '"sha" wasn\'t supplied' in msg:
+                        continue
+                    raise
+
             return {
-                "success": True, "url": url, "message": commit_msg,
-                "mode": "new_file", "file": file_path,
+                "success": False,
+                "url": "",
+                "message": "All candidate file names already exist. Try again.",
             }
         except GithubException as e:
             logger.error(f"create_dsa_file failed: {e}")
