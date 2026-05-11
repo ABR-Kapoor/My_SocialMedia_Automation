@@ -29,7 +29,7 @@ from bot.states import (
     EDITING_CONTENT, ENTERING_DATETIME, REVIEWING_CONTENT,
     SELECTING_IMAGE, SELECTING_IMG_STYLE, SELECTING_PLATFORMS,
     SELECTING_REPO, SELECTING_SCHEDULE, SELECTING_TOPIC,
-    UPDATING_STYLE, UPLOADING_IMAGE,
+    UPDATING_STYLE, UPLOADING_IMAGE, WHAT_TO_DO_CHAT,
 )
 from config import IST, TELEGRAM_CHAT_ID, NEON_DATABASE_URL
 from database.connection import get_pool
@@ -99,12 +99,12 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["user_id"] = update.effective_user.id
     await update.message.reply_text(
         "Abeer Brand Bot - social media\n\n"
+        "/what_to_do — tell me what you want (agentic chat)\n"
         "/post — create & publish a post\n"
-        "/github\\_commit — check & auto-commit to DSA-java\n"
-        "/auth\\_linkedin — linkedin connection status\n"
+        "/github_commit — check & auto-commit to DSA-java\n"
+        "/auth_linkedin — linkedin connection status\n"
         "/history — last 5 posts\n"
         "/style — writing tone",
-        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -150,6 +150,113 @@ async def receive_style(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
     )
     return ConversationHandler.END
+
+
+# ── /what_to_do — Agentic Intent Detection ────────────────────────────────────
+
+WHAT_TO_DO_PROMPT = """
+You are Abeer's assistant. Classify the user's intent from their message.
+
+INTENTS:
+1. github_commit - User wants to commit code, add DSA problem, comment on file, anything GitHub related
+2. social_post - User wants to create content for LinkedIn, Twitter, Reddit, Medium, Pinterest
+3. mixed - User wants both GitHub and social media posting
+4. unclear - Can't determine intent, need clarification
+
+Respond with ONLY one word: github_commit, social_post, mixed, or unclear
+
+User message: {message}
+"""
+
+
+@owner_only
+async def cmd_what_to_do(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Agentic chatbot that understands user intent and routes accordingly."""
+    await update.message.reply_text(
+        "🤖 Kya karna hai bata — main samajh jaunga!\n\n"
+        "Examples:\n"
+        "• 'DSA problem solve karke commit kardo'\n"
+        "• 'LinkedIn pe AuraSutra ke baare mein post karo'\n"
+        "• 'GitHub comment + Twitter post dono'\n\n"
+        "Bol, kya karna hai?",
+    )
+    return WHAT_TO_DO_CHAT
+
+
+async def what_to_do_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Process user's natural language intent."""
+    user_msg = update.message.text.strip()
+    msg = await update.message.reply_text("⏳ Samajh raha hoon...")
+
+    # Use AI to classify intent
+    try:
+        prompt = WHAT_TO_DO_PROMPT.format(message=user_msg)
+        response = await content_agent._generate_text(prompt, label="intent")
+        intent = response.strip().lower()
+    except Exception as e:
+        logger.error(f"Intent classification failed: {e}")
+        intent = "unclear"
+
+    if intent == "github_commit":
+        await msg.edit_text(
+            "✅ Samajh gaya — GitHub pe kaam karna hai!\n\n"
+            "Options:\n"
+            "💬 Comment on existing file\n"
+            "📝 Create new DSA file\n",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💬 Comment & Commit", callback_data="gh_commit_comment")],
+                [InlineKeyboardButton("📝 New DSA File", callback_data="gh_commit_dsa")],
+            ])
+        )
+        return ConversationHandler.END
+
+    elif intent == "social_post":
+        await msg.edit_text(
+            "✅ Samajh gaya — social media pe post karna hai!\n\n"
+            "Chalo /post se shuru karte hain...",
+        )
+        # Trigger the post flow
+        context.user_data.clear()
+        context.user_data["user_id"] = update.effective_user.id
+        await update.message.reply_text(
+            "📱 Select platforms:",
+            reply_markup=platform_keyboard(set()),
+        )
+        return SELECTING_PLATFORMS
+
+    elif intent == "mixed":
+        await msg.edit_text(
+            "✅ Dono karna hai — GitHub + Social Media!\n\n"
+            "Pehle kya karein?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🐙 GitHub pehle", callback_data="gh_commit_comment")],
+                [InlineKeyboardButton("📱 Social Media pehle", callback_data="wtd_social")],
+            ])
+        )
+        return ConversationHandler.END
+
+    else:
+        await msg.edit_text(
+            "🤔 Thoda clear nahi hua...\n\n"
+            "Kya karna hai specifically?\n"
+            "• GitHub pe commit/comment?\n"
+            "• LinkedIn/Twitter/Reddit pe post?\n"
+            "• Dono?",
+        )
+        return WHAT_TO_DO_CHAT
+
+
+async def wtd_social_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle 'social media first' callback from /what_to_do."""
+    query = update.callback_query
+    await query.answer()
+    context.user_data.clear()
+    context.user_data["user_id"] = query.from_user.id
+    await query.edit_message_text(
+        "📱 Select platforms:",
+        reply_markup=platform_keyboard(set()),
+    )
+    return SELECTING_PLATFORMS
 
 
 # ── /auth_linkedin ────────────────────────────────────────────────────────────
@@ -1197,6 +1304,19 @@ def register_all_handlers(app):
 
     # Callback: GitHub auto-commit button
     app.add_handler(CallbackQueryHandler(gh_commit_action, pattern="^gh_commit_"))
+
+    # Callback: what_to_do social media choice
+    app.add_handler(CallbackQueryHandler(wtd_social_callback, pattern="^wtd_social$"))
+
+    # /what_to_do agentic chat
+    what_to_do_conv = ConversationHandler(
+        entry_points=[CommandHandler("what_to_do", cmd_what_to_do)],
+        states={
+            WHAT_TO_DO_CHAT: [MessageHandler(filters.TEXT & ~filters.COMMAND, what_to_do_handler)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(what_to_do_conv)
 
     style_conv = ConversationHandler(
         entry_points=[CommandHandler("style", cmd_style)],

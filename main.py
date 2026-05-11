@@ -33,6 +33,7 @@ async def startup(app):
     from telegram import BotCommand
     commands = [
         BotCommand("start",         "👋 Welcome & help"),
+        BotCommand("what_to_do",    "🤖 Tell me what you want"),
         BotCommand("post",          "✍️ Create & publish a post"),
         BotCommand("github_commit", "🐙 Check & auto-commit to DSA-java"),
         BotCommand("auth_linkedin", "🔷 LinkedIn connection status"),

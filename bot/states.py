@@ -12,4 +12,5 @@
     SELECTING_SCHEDULE,    # Step 6 – now or schedule?
     ENTERING_DATETIME,     # Step 6b – user enters date/time string
     UPDATING_STYLE,        # /style command flow
-) = range(11)
+    WHAT_TO_DO_CHAT,       # /what_to_do agentic chat
+) = range(12)
